@@ -1057,6 +1057,9 @@ struct nand_sdr_timings {
 	u32 tWW_min;
 };
 
+/* get timing characteristics from ONFI timing mode. */
+const struct nand_sdr_timings *onfi_async_timing_mode_to_sdr_timings(int mode);
+
 #ifdef __UBOOT__
 /* Standard NAND functions from nand_base.c */
 void nand_write_buf(struct mtd_info *mtd, const uint8_t *buf, int len);
