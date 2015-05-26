@@ -153,7 +153,7 @@
 #endif
 
 /* 4MB of malloc() pool */
-#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (4 << 20))
+#define CONFIG_SYS_MALLOC_LEN		(CONFIG_ENV_SIZE + (64 << 20))
 
 /*
  * Miscellaneous configurable options
@@ -371,10 +371,31 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_ENV_IS_NOWHERE
 #endif
 
-#ifdef CONFIG_SPL_NAND_SUPPORT
+#ifdef CONFIG_NAND_SUNXI
+#ifndef CONFIG_NAND_SUNXI_GPC_PORTS
+#error "No NAND GPC ports defined, NAND unsupported"
+#endif /* CONFIG_NAND_SUNXI_GPC_PORTS */
 #define CONFIG_NAND
 #define CONFIG_SYS_NAND_SELF_INIT
-#define CONFIG_NAND_SUNXI
+#define CONFIG_SYS_MAX_NAND_DEVICE 8
+
+#define CONFIG_SYS_NAND_ONFI_DETECTION
+
+/* Requirements for UBI */
+#define CONFIG_RBTREE
+#define CONFIG_LZO
+#define CONFIG_CMD_MTDPARTS
+#define CONFIG_CMD_UBI
+#define CONFIG_CMD_UBIFS
+#define CONFIG_MTD_DEVICE
+
+#define CONFIG_SPL_NAND_SUPPORT
+
+#define CONFIG_MTD_PARTITIONS
+/*
+#define CONFIG_MTD_DEBUG
+#define CONFIG_MTD_DEBUG_VERBOSE		MTD_DEBUG_LEVEL3
+*/
 #define CONFIG_CMD_SPL_WRITE_SIZE		0x000400
 #define CONFIG_SYS_NAND_U_BOOT_OFFS		0x008000
 
@@ -383,11 +404,7 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_NAND_SUNXI_ECC_STEP		1024
 #define CONFIG_NAND_SUNXI_ECC_STRENGTH		40
 #define CONFIG_NAND_SUNXI_ADDR_CYCLES		5
-
-#ifndef CONFIG_NAND_SUNXI_GPC_PORTS
-#error "No NAND GPC ports defined, NAND unsupported"
-#endif
-#endif /* CONFIG_SPL_NAND_SUPPORT */
+#endif /* CONFIG_NAND_SUNXI */
 
 #define CONFIG_MISC_INIT_R
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
