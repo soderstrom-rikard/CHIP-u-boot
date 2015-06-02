@@ -31,6 +31,7 @@
 #include <asm/arch/dram.h>
 #include <asm/arch/gpio.h>
 #include <asm/arch/mmc.h>
+#include <asm/arch/nand.h>
 #include <asm/arch/usb_phy.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
@@ -328,6 +329,10 @@ void board_nand_init(void)
 
 	for (pin = 0; pin < ARRAY_SIZE(ports); pin++)
 		sunxi_gpio_set_cfgpin(SUNXI_GPC(ports[pin]), SUNXI_GPC_NAND);
+
+#ifndef CONFIG_SPL_BUILD
+	sunxi_nand_init();
+#endif
 }
 #endif
 
