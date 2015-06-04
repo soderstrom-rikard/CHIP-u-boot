@@ -72,6 +72,21 @@
 	BOOT_TARGET_DEVICES_references_MMC_without_CONFIG_CMD_MMC
 #endif
 
+#ifdef CONFIG_CMD_NAND
+#define BOOTENV_DEV_NAND(devtypeu, devtypel, instance) \
+	"bootcmd_nand="                                                   \
+		"ubi part " #devtypel #instance "_main; "                 \
+		"ubifsmount ubi:boot; "                                   \
+		"run scan_ubifs_for_script\0"
+#define BOOTENV_DEV_NAME_NAND(devtypeu, devtypel, instance)	#devtypel " "
+#else
+#define BOOTENV_SHARED_NAND
+#define BOOTENV_DEV_NAND \
+	BOOT_TARGET_DEVICES_references_NAND_without_CONFIG_CMD_NAND
+#define BOOTENV_DEV_NAME_NAND \
+	BOOT_TARGET_DEVICES_references_NAND_without_CONFIG_CMD_NAND
+#endif
+
 #ifdef CONFIG_CMD_SATA
 #define BOOTENV_SHARED_SATA	BOOTENV_SHARED_BLKDEV(sata)
 #define BOOTENV_DEV_SATA	BOOTENV_DEV_BLKDEV
@@ -202,6 +217,17 @@
 			"echo SCRIPT FAILED: continuing...; "             \
 		"fi\0"                                                    \
 	\
+	"scan_ubifs_for_script="                                          \
+		"for script in ${boot_scripts}; do "                      \
+			"for prefix in ${boot_prefixes}; do "             \
+				"if ubifsload ${scriptaddr} "             \
+				"${prefix}${script}; then "               \
+					"echo Found U-Boot script "       \
+						"${prefix}${script}; "    \
+					"source ${scriptaddr}; "	  \
+				"fi; "                                    \
+			"done; "                                          \
+		"done\0"                                                  \
 	"boot_a_script="                                                  \
 		"load ${devtype} ${devnum}:${bootpart} "                  \
 			"${scriptaddr} ${prefix}${script}; "              \
