@@ -447,8 +447,15 @@ extern int soft_i2c_gpio_scl;
 #define BOOT_TARGET_DEVICES_USB(func)
 #endif
 
+#ifdef CONFIG_NAND
+#define BOOT_TARGET_DEVICES_NAND(func) func(NAND, nand , 0)
+#else
+#define BOOT_TARGET_DEVICES_NAND(func)
+#endif
+
 #define BOOT_TARGET_DEVICES(func) \
 	BOOT_TARGET_DEVICES_MMC(func) \
+	BOOT_TARGET_DEVICES_NAND(func) \
 	BOOT_TARGET_DEVICES_SCSI(func) \
 	BOOT_TARGET_DEVICES_USB(func) \
 	func(PXE, pxe, na) \
@@ -488,6 +495,8 @@ extern int soft_i2c_gpio_scl;
 	"fdtfile=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
 	"console=ttyS0,115200\0" \
 	"usbnet_devaddr=de:ad:be:af:00:01\0" \
+	"mtdids=nand0=mtd2\0" \
+	"mtdparts=mtdparts=mtd2:0xffc00000@0x400000(nand0_main)\0" \
 	BOOTENV
 
 #else /* ifndef CONFIG_SPL_BUILD */
