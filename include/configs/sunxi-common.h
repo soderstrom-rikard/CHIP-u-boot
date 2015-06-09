@@ -140,7 +140,7 @@
 #define CONFIG_SERIAL_TAG
 
 /* mmc config */
-#if !defined(CONFIG_UART0_PORT_F)
+#if !defined(CONFIG_UART0_PORT_F) && !defined(CONFIG_NO_MMC)
 #define CONFIG_MMC
 #define CONFIG_GENERIC_MMC
 #define CONFIG_CMD_MMC
@@ -197,7 +197,7 @@
 
 #define CONFIG_SPL_LIBDISK_SUPPORT
 
-#if !defined(CONFIG_UART0_PORT_F)
+#if !defined(CONFIG_UART0_PORT_F) && !defined(CONFIG_NO_MMC)
 #define CONFIG_SPL_MMC_SUPPORT
 #endif
 
