@@ -395,6 +395,9 @@ extern int soft_i2c_gpio_scl;
 	CONSOLE_STDIN_SETTINGS \
 	CONSOLE_STDOUT_SETTINGS
 
+#undef BOOTENV
+#define BOOTENV "bootcmd=source ${scriptaddr}\0"
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	CONSOLE_ENV_SETTINGS \
 	MEM_LAYOUT_ENV_SETTINGS \
