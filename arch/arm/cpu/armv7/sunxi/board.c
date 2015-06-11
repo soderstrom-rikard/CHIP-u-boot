@@ -157,8 +157,9 @@ u32 spl_boot_device(void)
 		return BOOT_DEVICE_MMC1;
 
 	/* Fallback to booting NAND if enabled. */
-	if (IS_ENABLED(CONFIG_SPL_NAND_SUPPORT))
+#ifdef CONFIG_SPL_NAND_SUPPORT
 		return BOOT_DEVICE_NAND;
+#endif
 
 	if (CONFIG_MMC_SUNXI_SLOT_EXTRA == 2) {
 		mmc1 = find_mmc_device(1);
