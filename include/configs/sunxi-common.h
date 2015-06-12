@@ -401,7 +401,7 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_MTD_DEBUG_VERBOSE		MTD_DEBUG_LEVEL3
 */
 #define CONFIG_CMD_SPL_WRITE_SIZE		0x000400
-#define CONFIG_SYS_NAND_U_BOOT_OFFS		0x008000
+#define CONFIG_SYS_NAND_U_BOOT_OFFS		0x400000
 
 /* \todo Make these parameterisable in kernel config ? */
 #define CONFIG_NAND_SUNXI_PAGE_SIZE		8192
