@@ -146,10 +146,6 @@
 #define CONFIG_CMD_MMC
 #define CONFIG_MMC_SUNXI
 #define CONFIG_MMC_SUNXI_SLOT		0
-#if !defined(CONFIG_SPL_NAND_SUPPORT)
-#define CONFIG_ENV_IS_IN_MMC
-#define CONFIG_SYS_MMC_ENV_DEV		0	/* first detected MMC controller */
-#endif /* CONFIG_SPL_NAND_SUPPORT */
 #endif
 
 /* 4MB of malloc() pool */
@@ -181,9 +177,6 @@
 
 #define CONFIG_SYS_MONITOR_LEN		(512 << 10)	/* 512 KiB */
 #define CONFIG_IDENT_STRING		" Allwinner Technology"
-
-#define CONFIG_ENV_OFFSET		(544 << 10) /* (8 + 24 + 512) KiB */
-#define CONFIG_ENV_SIZE			(128 << 10)	/* 128 KiB */
 
 #define CONFIG_FAT_WRITE	/* enable write access */
 
@@ -364,13 +357,6 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_SYS_USB_EVENT_POLL_VIA_INT_QUEUE
 #endif
 
-#if !defined CONFIG_ENV_IS_IN_MMC && \
-    !defined CONFIG_ENV_IS_IN_NAND && \
-    !defined CONFIG_ENV_IS_IN_FAT && \
-    !defined CONFIG_ENV_IS_IN_SPI_FLASH
-#define CONFIG_ENV_IS_NOWHERE
-#endif
-
 #ifdef CONFIG_NAND_SUNXI
 #ifndef CONFIG_NAND_SUNXI_GPC_PORTS
 #error "No NAND GPC ports defined, NAND unsupported"
@@ -405,6 +391,19 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_NAND_SUNXI_ECC_STRENGTH		40
 #define CONFIG_NAND_SUNXI_ADDR_CYCLES		5
 #endif /* CONFIG_NAND_SUNXI */
+
+#if defined(CONFIG_ENV_IS_IN_NAND)
+#define CONFIG_ENV_OFFSET			0x600000
+#define CONFIG_ENV_SIZE				0x200000
+#elif defined(CONFIG_ENV_IS_IN_MMC)
+#define CONFIG_ENV_OFFSET			(544 << 10) /* (8 + 24 + 512) KiB */
+#define CONFIG_ENV_SIZE				(128 << 10) /* 128 KiB */
+#define CONFIG_SYS_MMC_ENV_DEV		0	/* first detected MMC controller */
+#else
+#define CONFIG_ENV_OFFSET			(544 << 10) /* (8 + 24 + 512) KiB */
+#define CONFIG_ENV_SIZE				(128 << 10) /* 128 KiB */
+#define CONFIG_ENV_IS_NOWHERE
+#endif
 
 #define CONFIG_MISC_INIT_R
 #define CONFIG_SYS_CONSOLE_IS_IN_ENV
