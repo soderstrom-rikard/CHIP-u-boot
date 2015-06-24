@@ -231,6 +231,12 @@ int cpu_eth_init(bd_t *bis)
 	}
 #endif
 
+#ifdef CONFIG_USB_ETHER
+	rc = usb_eth_initialize(bis);
+	if (rc)
+		printf("Error %d registering USB_ETHER\n", rc);
+#endif
+
 	return 0;
 }
 #endif
