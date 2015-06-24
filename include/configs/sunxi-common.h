@@ -326,13 +326,33 @@ extern int soft_i2c_gpio_scl;
 #endif
 
 #ifdef CONFIG_USB_MUSB_SUNXI
-#define CONFIG_MUSB_HOST
+#define CONFIG_MUSB_GADGET
 #define CONFIG_MUSB_PIO_ONLY
 #endif
 
-#if defined CONFIG_USB_EHCI || defined CONFIG_USB_MUSB_SUNXI
+#if defined CONFIG_USB_EHCI || defined CONFIG_MUSB_HOST
 #define CONFIG_CMD_USB
 #define CONFIG_USB_STORAGE
+#endif
+
+#ifdef CONFIG_MUSB_GADGET
+#define CONFIG_USB_GADGET
+#define CONFIG_USB_GADGET_DUALSPEED
+#define CONFIG_USB_GADGET_VBUS_DRAW	0
+
+#define CONFIG_USB_ETHER
+#define CONFIG_USB_ETH_RNDIS
+#define CONFIG_USBNET_HOST_ADDR		"de:ad:be:af:00:00"
+
+#define CONFIG_CMD_FASTBOOT
+#define CONFIG_USB_FASTBOOT_BUF_ADDR   CONFIG_SYS_LOAD_ADDR
+#define CONFIG_USB_FASTBOOT_BUF_SIZE   0x2000000
+#define CONFIG_ANDROID_BOOT_IMAGE
+
+#define CONFIG_USBDOWNLOAD_GADGET
+#define CONFIG_G_DNL_VENDOR_NUM		0x18d1
+#define CONFIG_G_DNL_PRODUCT_NUM	0x1010
+#define CONFIG_G_DNL_MANUFACTURER	"Allwinner Technology"
 #endif
 
 #ifdef CONFIG_USB_KEYBOARD
@@ -430,6 +450,7 @@ extern int soft_i2c_gpio_scl;
 	MEM_LAYOUT_ENV_SETTINGS \
 	"fdtfile=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
 	"console=ttyS0,115200\0" \
+	"usbnet_devaddr=de:ad:be:af:00:01\0" \
 	BOOTENV
 
 #else /* ifndef CONFIG_SPL_BUILD */
