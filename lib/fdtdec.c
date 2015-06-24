@@ -79,7 +79,6 @@ static const char * const compat_names[COMPAT_COUNT] = {
 	COMPAT(SOCIONEXT_XHCI, "socionext,uniphier-xhci"),
 	COMPAT(COMPAT_INTEL_PCH, "intel,bd82x6x"),
 	COMPAT(COMPAT_INTEL_IRQ_ROUTER, "intel,irq-router"),
-	COMPAT(COMPAT_SUNXI_NAND, "allwinner,sun4i-nand"),
 	COMPAT(COMPAT_SUNXI_NAND, "allwinner,sun4i-a10-nand"),
 };
 
