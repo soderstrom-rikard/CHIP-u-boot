@@ -203,8 +203,8 @@ static void sunxi_musb_enable(struct musb *musb)
 {
 	pr_debug("%s():\n", __func__);
 
-	if (enabled)
-		return;
+	musb_ep_select(musb->mregs, 0);
+	musb_writeb(musb->mregs, MUSB_FADDR, 0);
 
 	/* select PIO mode */
 	musb_writeb(musb->mregs, USBC_REG_o_VEND0, 0);
