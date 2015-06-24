@@ -151,10 +151,12 @@ u32 spl_boot_device(void)
 		return BOOT_DEVICE_BOARD;
 
 	/* The BROM will try to boot from mmc0 first, so try that first. */
+#ifndef CONFIG_NO_MMC
 	mmc_initialize(gd->bd);
 	mmc0 = find_mmc_device(0);
 	if (sunxi_mmc_has_egon_boot_signature(mmc0))
 		return BOOT_DEVICE_MMC1;
+#endif
 
 	/* Fallback to booting NAND if enabled. */
 #ifdef CONFIG_SPL_NAND_SUPPORT
