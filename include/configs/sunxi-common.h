@@ -362,6 +362,7 @@ extern int soft_i2c_gpio_scl;
 #error "No NAND GPC ports defined, NAND unsupported"
 #endif /* CONFIG_NAND_SUNXI_GPC_PORTS */
 #define CONFIG_NAND
+#define CONFIG_SYS_NAND_MAX_ECCPOS 1664
 #define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_MAX_NAND_DEVICE 8
 
@@ -383,18 +384,18 @@ extern int soft_i2c_gpio_scl;
 #define CONFIG_MTD_DEBUG_VERBOSE		MTD_DEBUG_LEVEL3
 */
 #define CONFIG_CMD_SPL_WRITE_SIZE		0x000400
-#define CONFIG_SYS_NAND_U_BOOT_OFFS		0x008000
+#define CONFIG_SYS_NAND_U_BOOT_OFFS		0x800000
 
 /* \todo Make these parameterisable in kernel config ? */
-#define CONFIG_NAND_SUNXI_PAGE_SIZE		8192
+#define CONFIG_NAND_SUNXI_PAGE_SIZE		16384
 #define CONFIG_NAND_SUNXI_ECC_STEP		1024
-#define CONFIG_NAND_SUNXI_ECC_STRENGTH		40
+#define CONFIG_NAND_SUNXI_ECC_STRENGTH		56
 #define CONFIG_NAND_SUNXI_ADDR_CYCLES		5
 #endif /* CONFIG_NAND_SUNXI */
 
 #if defined(CONFIG_ENV_IS_IN_NAND)
-#define CONFIG_ENV_OFFSET			0x600000
-#define CONFIG_ENV_SIZE				0x200000
+#define CONFIG_ENV_OFFSET			0xc00000
+#define CONFIG_ENV_SIZE				0x400000
 #elif defined(CONFIG_ENV_IS_IN_MMC)
 #define CONFIG_ENV_OFFSET			(544 << 10) /* (8 + 24 + 512) KiB */
 #define CONFIG_ENV_SIZE				(128 << 10) /* 128 KiB */
@@ -494,8 +495,8 @@ extern int soft_i2c_gpio_scl;
 	"fdtfile=" CONFIG_DEFAULT_DEVICE_TREE ".dtb\0" \
 	"console=ttyS0,115200\0" \
 	"usbnet_devaddr=de:ad:be:af:00:01\0" \
-	"mtdids=nand0=mtd2\0" \
-	"mtdparts=mtdparts=mtd2:0xffc00000@0x400000(nand0_main)\0" \
+	"mtdids=nand0=sunxi-nand.0\0" \
+	"mtdparts=mtdparts=sunxi-nand.0:-@0x1000000(UBI)\0" \
 	BOOTENV
 
 #else /* ifndef CONFIG_SPL_BUILD */
