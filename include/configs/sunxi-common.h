@@ -362,6 +362,7 @@ extern int soft_i2c_gpio_scl;
 #error "No NAND GPC ports defined, NAND unsupported"
 #endif /* CONFIG_NAND_SUNXI_GPC_PORTS */
 #define CONFIG_NAND
+#define CONFIG_CMD_NAND_TRIMFFS
 #define CONFIG_SYS_NAND_MAX_ECCPOS 1664
 #define CONFIG_SYS_NAND_SELF_INIT
 #define CONFIG_SYS_MAX_NAND_DEVICE 8
