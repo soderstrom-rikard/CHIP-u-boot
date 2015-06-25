@@ -4270,7 +4270,7 @@ EXPORT_SYMBOL(nand_scan_ident);
  *  - fill ECC struct with default function/values when these ones are undefined
  *  - fill ECC infos based on MTD device
  */
-static int nand_ecc_ctrl_init(struct mtd_info *mtd, struct nand_ecc_ctrl *ecc)
+int nand_ecc_ctrl_init(struct mtd_info *mtd, struct nand_ecc_ctrl *ecc)
 {
 	int i;
 

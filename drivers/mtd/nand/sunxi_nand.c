@@ -131,6 +131,14 @@ struct sunxi_nand_hw_rnd {
 	u16 state;
 };
 
+struct sunxi_nand_config {
+	struct list_head node;
+	const char *name;
+	int name_len;
+	struct nand_ecc_ctrl ecc;
+	struct nand_rnd_ctrl rnd;
+};
+
 /*
  * NAND chip structure: stores NAND chip device related informations
  *
@@ -149,6 +157,8 @@ struct sunxi_nand_chip {
 	struct mtd_info mtd;
 	char default_name[MAX_NAME_SIZE];
 	void *buffer;
+	struct list_head configs;
+	struct sunxi_nand_config *config;
 	unsigned long clk_rate;
 	int selected;
 	int nsels;
@@ -188,6 +198,8 @@ static inline struct sunxi_nfc *to_sunxi_nfc(struct nand_hw_control *ctrl)
 {
 	return container_of(ctrl, struct sunxi_nfc, controller);
 }
+
+static bool sunxi_nand_chips[CONFIG_SYS_MAX_NAND_DEVICE];
 
 static void sunxi_set_clk_rate(unsigned long hz)
 {
@@ -1669,6 +1681,151 @@ static int sunxi_nand_ecc_init(int node, struct mtd_info *mtd,
 	return 0;
 }
 
+int nand_ecc_ctrl_init(struct mtd_info *mtd, struct nand_ecc_ctrl *ecc);
+
+static int sunxi_nand_add_config(int node, const char *name,
+				 struct mtd_info *mtd)
+{
+	struct nand_chip *nand = mtd->priv;
+	struct sunxi_nand_chip *sunxi_nand = to_sunxi_nand(nand);
+	struct sunxi_nand_config *conf;
+	int ret;
+
+	conf = kzalloc(sizeof(*conf), GFP_KERNEL);
+	if (!conf)
+		return -ENOMEM;
+
+	if (name)
+		conf->name = name;
+	else
+		conf->name = fdt_get_name(gd->fdt_blob, node,
+					  &conf->name_len);
+
+	ret = sunxi_nand_ecc_init(node, mtd, &conf->ecc);
+	if (ret)
+		return ret;
+
+	ret = sunxi_nand_rnd_init(node, mtd, &conf->rnd, &conf->ecc);
+	if (ret)
+		return ret;
+
+	ret = nand_ecc_ctrl_init(mtd, &conf->ecc);
+	if (ret)
+		return ret;
+
+	list_add_tail(&conf->node, &sunxi_nand->configs);
+
+	return 0;
+}
+
+static int sunxi_nand_configs_init(int node, struct mtd_info *mtd)
+{
+	int configs_node, cfg_node;
+	int ret;
+
+	ret = sunxi_nand_add_config(node, "default", mtd);
+	if (ret)
+		return ret;
+
+	configs_node = fdt_subnode_offset(gd->fdt_blob, node, "configs");
+	if (configs_node < 0)
+		return 0;
+
+
+	fdt_for_each_subnode(gd->fdt_blob, cfg_node, configs_node) {
+		ret = sunxi_nand_add_config(cfg_node, NULL, mtd);
+		if (ret)
+			return ret;
+	}
+	return 0;
+}
+
+static int sunxi_nand_set_config(struct mtd_info *mtd, const char *name)
+{
+	struct nand_chip *nand = mtd->priv;
+	struct sunxi_nand_chip *sunxi_nand = to_sunxi_nand(nand);
+	struct sunxi_nand_config *conf;
+
+	list_for_each_entry(conf, &sunxi_nand->configs, node) {
+		if (!strcmp(conf->name, name)) {
+			sunxi_nand->config = conf;
+			nand->ecc = conf->ecc;
+			nand->rnd = conf->rnd;
+			return 0;
+		}
+	}
+
+	return -EINVAL;
+}
+
+static void sunxi_nand_display_configs(struct mtd_info *mtd)
+{
+	struct nand_chip *nand = mtd->priv;
+	struct sunxi_nand_chip *sunxi_nand = to_sunxi_nand(nand);
+	struct sunxi_nand_config *conf;
+
+	printf("sunxi_nand configs: \n");
+
+	list_for_each_entry(conf, &sunxi_nand->configs, node) {
+		if (conf == sunxi_nand->config)
+			printf("[%s] ", conf->name);
+		else
+			printf("%s ", conf->name);
+	}
+	printf("\n");
+}
+
+static int do_sunxi_nand(cmd_tbl_t *cmdtp, int flag, int argc,
+			 char * const argv[])
+{
+	int dev = nand_curr_device;
+	struct mtd_info *mtd;
+	char *cmd;
+
+	/* at least two arguments please */
+	if (argc < 2)
+		goto usage;
+
+	cmd = argv[1];
+
+	if (dev >= CONFIG_SYS_MAX_NAND_DEVICE ||
+	    !sunxi_nand_chips[dev]) {
+		printf("Invalid mtd device\n");
+		return CMD_RET_FAILURE;
+	}
+
+	mtd = &nand_info[dev];
+
+	if (!strcmp("config", cmd)) {
+
+		if (argc == 2) {
+			sunxi_nand_display_configs(mtd);
+			return 0;
+		}
+
+		if (sunxi_nand_set_config(mtd, argv[2])) {
+			printf("Invalid config name: %s\n", argv[2]);
+			return CMD_RET_FAILURE;
+		}
+
+		return 0;
+	}
+
+usage:
+	return CMD_RET_USAGE;
+}
+
+#ifdef CONFIG_SYS_LONGHELP
+static char sunxi_nand_help_text[] =
+        "sunxi_nand config [config-name] - show or set the sunxi_nand config\n";
+#endif
+
+
+U_BOOT_CMD(
+        sunxi_nand, CONFIG_SYS_MAXARGS, 0, do_sunxi_nand,
+	"sunxi NAND specific commands", sunxi_nand_help_text
+);
+
 static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 {
 	const struct nand_sdr_timings *timings;
@@ -1693,6 +1850,8 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	if (!chip)
 		return -ENOMEM;
 
+
+	INIT_LIST_HEAD(&chip->configs);
 	chip->nsels = nsels;
 	chip->selected = -1;
 	
@@ -1759,15 +1918,14 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	if (ret)
 		return ret;
 
-	ret = sunxi_nand_ecc_init(node, mtd, &nand->ecc);
-	printf("%d\n", ret);
+	ret = sunxi_nand_configs_init(node, mtd);
 	if (ret)
 		return ret;
 
-	ret = sunxi_nand_rnd_init(node, mtd, &nand->rnd, &nand->ecc);
+	ret = sunxi_nand_set_config(mtd, "default");
 	if (ret)
 		return ret;
-	
+
 	ret = nand_scan_tail(mtd);
 	if (ret)
 		return ret;
@@ -1786,6 +1944,7 @@ static int sunxi_nand_chip_init(int node, struct sunxi_nfc *nfc, int devnum)
 	}
 
 	list_add_tail(&chip->node, &nfc->chips);
+	sunxi_nand_chips[devnum] = true;
 
 	return 0;
 }
