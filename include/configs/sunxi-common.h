@@ -175,7 +175,7 @@
 
 #define CONFIG_SYS_NO_FLASH
 
-#define CONFIG_SYS_MONITOR_LEN		(512 << 10)	/* 512 KiB */
+#define CONFIG_SYS_MONITOR_LEN		(768 << 10)	/* 768 KiB */
 #define CONFIG_IDENT_STRING		" Allwinner Technology"
 
 #define CONFIG_FAT_WRITE	/* enable write access */
