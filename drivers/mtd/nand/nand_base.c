@@ -128,6 +128,33 @@ static int nand_get_device(struct mtd_info *mtd, int new_state);
 static int nand_do_write_oob(struct mtd_info *mtd, loff_t to,
 			     struct mtd_oob_ops *ops);
 
+void nand_set_slc_mode(struct mtd_info *mtd, bool enable)
+{
+	struct nand_chip *chip = mtd->priv;
+	int i;
+
+	if (mtd->slc_mode == enable)
+		return;
+
+	mtd->slc_mode = enable;
+	chip->pagebuf = -1;
+
+	mtd_set_slc_mode(mtd);
+	if (!chip->set_slc_mode)
+		return;
+
+	for (i = 0; i < chip->numchips; i++) {
+		chip->select_chip(mtd, i);
+		chip->set_slc_mode(mtd);
+		chip->select_chip(mtd, -1);
+	}
+}
+
+bool nand_get_slc_mode(struct mtd_info *mtd)
+{
+	return mtd->slc_mode;
+}
+
 /*
  * For devices which display every fart in the system on a separate LED. Is
  * compiled away when LED support is disabled.
@@ -138,16 +165,20 @@ static int check_offs_len(struct mtd_info *mtd,
 					loff_t ofs, uint64_t len)
 {
 	struct nand_chip *chip = mtd->priv;
+	int shift = chip->phys_erase_shift;
 	int ret = 0;
 
+	if (mtd->slc_mode)
+		shift--;
+
 	/* Start address must align on block boundary */
-	if (ofs & ((1ULL << chip->phys_erase_shift) - 1)) {
+	if (ofs & ((1ULL << shift) - 1)) {
 		pr_debug("%s: unaligned address\n", __func__);
 		ret = -EINVAL;
 	}
 
 	/* Length must align on block boundary */
-	if (len & ((1ULL << chip->phys_erase_shift) - 1)) {
+	if (len & ((1ULL << shift) - 1)) {
 		pr_debug("%s: length not block aligned\n", __func__);
 		ret = -EINVAL;
 	}
@@ -598,6 +629,9 @@ static int nand_block_checkbad(struct mtd_info *mtd, loff_t ofs, int getchip,
 	if (!chip->bbt)
 		return chip->block_bad(mtd, ofs, getchip);
 
+	if (mtd->slc_mode)
+		ofs *= 2;
+
 	/* Return info from the table */
 	return nand_isbad_bbt(mtd, ofs, allowbbt);
 }
@@ -803,6 +837,12 @@ static void nand_command_lp(struct mtd_info *mtd, unsigned int command,
 			chip->cmd_ctrl(mtd, column >> 8, ctrl);
 		}
 		if (page_addr != -1) {
+			if (mtd->slc_mode && chip->fix_page &&
+			    (command == NAND_CMD_ERASE1 ||
+			     command == NAND_CMD_READ0 ||
+			     command == NAND_CMD_SEQIN))
+				chip->fix_page(mtd, &page_addr);
+
 			chip->cmd_ctrl(mtd, page_addr, ctrl);
 			chip->cmd_ctrl(mtd, page_addr >> 8,
 				       NAND_NCE | NAND_ALE);
@@ -1313,14 +1353,19 @@ EXPORT_SYMBOL(nand_page_is_empty);
 int nand_page_get_status(struct mtd_info *mtd, int page)
 {
 	struct nand_chip *chip = mtd->priv;
-	u8 shift = (page % 4) * 2;
-	uint64_t offset = page / 4;
-	int ret = NAND_PAGE_STATUS_UNKNOWN;
+	u8 shift;
+	uint64_t offset;
 
-	if (chip->pst)
-		ret = (chip->pst[offset] >> shift) & 0x3;
+	if (!chip->pst)
+		return NAND_PAGE_STATUS_UNKNOWN;
 
-	return ret;
+	if (mtd->slc_mode)
+		page *= 2;
+
+	shift = (page % 4) * 2;
+	offset = page / 4;
+
+	return (chip->pst[offset] >> shift) & 0x3;
 }
 EXPORT_SYMBOL(nand_page_get_status);
 
@@ -1339,6 +1384,9 @@ void nand_page_set_status(struct mtd_info *mtd, int page,
 
 	if (!chip->pst)
 		return;
+
+	if (mtd->slc_mode)
+		page *= 2;
 
 	shift = (page % 4) * 2;
 	offset = page / 4;
@@ -1363,7 +1411,7 @@ int nand_pst_create(struct mtd_info *mtd)
 		return 0;
 
 	chip->pst = kzalloc(mtd->size >>
-			    (chip->page_shift + mtd->subpage_sft + 2),
+			    (chip->page_shift - mtd->subpage_sft + 2),
 			    GFP_KERNEL);
 	if (!chip->pst)
 		return -ENOMEM;
@@ -2835,7 +2883,7 @@ static int nand_do_write_ops(struct mtd_info *mtd, loff_t to,
 		     subpage < (column + writelen) / chip->subpagesize;
 		     subpage++)
 			nand_page_set_status(mtd,
-					     (page << mtd->subpage_sft) +
+					     (realpage << mtd->subpage_sft) +
 					     subpage,
 					     NAND_PAGE_FILLED);
 
@@ -3095,6 +3143,7 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 {
 	int page, status, pages_per_block, ret, chipnr;
 	struct nand_chip *chip = mtd->priv;
+	uint32_t erasesize = mtd->erasesize;
 	loff_t len;
 	int i;
 
@@ -3114,6 +3163,9 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 
 	/* Calculate pages in each block */
 	pages_per_block = 1 << (chip->phys_erase_shift - chip->page_shift);
+
+	if (mtd->slc_mode)
+		pages_per_block /= 2;
 
 	/* Select the NAND device */
 	chip->select_chip(mtd, chipnr);
@@ -3186,7 +3238,7 @@ int nand_erase_nand(struct mtd_info *mtd, struct erase_info *instr,
 		}
 
 		/* Increment page address and decrement length */
-		len -= (1ULL << chip->phys_erase_shift);
+		len -= erasesize;
 		page += pages_per_block;
 
 		/* Check, if we cross a chip boundary */

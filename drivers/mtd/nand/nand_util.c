@@ -72,6 +72,8 @@ int nand_erase_opts(nand_info_t *meminfo, const nand_erase_options_t *opts)
 	erase.addr = opts->offset;
 	erase_length = lldiv(opts->length + meminfo->erasesize - 1,
 			     meminfo->erasesize);
+	if (meminfo->slc_mode)
+		erase_length /= 2;
 
 	cleanmarker.magic = cpu_to_je16(JFFS2_MAGIC_BITMASK);
 	cleanmarker.nodetype = cpu_to_je16(JFFS2_NODETYPE_CLEANMARKER);
@@ -615,6 +617,9 @@ int nand_write_skip_bad(nand_info_t *nand, loff_t offset, size_t *length,
 		*length = 0;
 		return -EFBIG;
 	}
+
+	if (nand->slc_mode)
+		offset /= 2;
 
 	if (!need_skip && !(flags & WITH_DROP_FFS)) {
 		rval = nand_write(nand, offset, length, buffer);

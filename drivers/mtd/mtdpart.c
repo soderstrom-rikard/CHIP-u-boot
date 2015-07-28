@@ -86,11 +86,12 @@ static int part_read(struct mtd_info *mtd, loff_t from, size_t len,
 		size_t *retlen, u_char *buf)
 {
 	struct mtd_part *part = PART(mtd);
+	uint64_t offset = part->master->slc_mode ? part->offset / 2 : part->offset;
 	struct mtd_ecc_stats stats;
 	int res;
 
 	stats = part->master->ecc_stats;
-	res = part->master->_read(part->master, from + part->offset, len,
+	res = part->master->_read(part->master, from + offset, len,
 				  retlen, buf);
 	if (unlikely(mtd_is_eccerr(res)))
 		mtd->ecc_stats.failed +=
@@ -135,6 +136,7 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 		struct mtd_oob_ops *ops)
 {
 	struct mtd_part *part = PART(mtd);
+	uint64_t offset = part->master->slc_mode ? part->offset / 2 : part->offset;
 	int res;
 
 	if (from >= mtd->size)
@@ -159,7 +161,7 @@ static int part_read_oob(struct mtd_info *mtd, loff_t from,
 			return -EINVAL;
 	}
 
-	res = part->master->_read_oob(part->master, from + part->offset, ops);
+	res = part->master->_read_oob(part->master, from + offset, ops);
 	if (unlikely(res)) {
 		if (mtd_is_bitflip(res))
 			mtd->ecc_stats.corrected++;
@@ -205,7 +207,8 @@ static int part_write(struct mtd_info *mtd, loff_t to, size_t len,
 		size_t *retlen, const u_char *buf)
 {
 	struct mtd_part *part = PART(mtd);
-	return part->master->_write(part->master, to + part->offset, len,
+	uint64_t offset = part->master->slc_mode ? part->offset / 2 : part->offset;
+	return part->master->_write(part->master, to + offset, len,
 				    retlen, buf);
 }
 
@@ -213,7 +216,8 @@ static int part_panic_write(struct mtd_info *mtd, loff_t to, size_t len,
 		size_t *retlen, const u_char *buf)
 {
 	struct mtd_part *part = PART(mtd);
-	return part->master->_panic_write(part->master, to + part->offset, len,
+	uint64_t offset = part->master->slc_mode ? part->offset / 2 : part->offset;
+	return part->master->_panic_write(part->master, to + offset, len,
 					  retlen, buf);
 }
 
@@ -257,14 +261,16 @@ static int part_writev(struct mtd_info *mtd, const struct kvec *vecs,
 static int part_erase(struct mtd_info *mtd, struct erase_info *instr)
 {
 	struct mtd_part *part = PART(mtd);
+	uint64_t offset = part->master->slc_mode ? part->offset / 2 : part->offset;
 	int ret;
 
-	instr->addr += part->offset;
+	instr->addr += offset;
+
 	ret = part->master->_erase(part->master, instr);
 	if (ret) {
 		if (instr->fail_addr != MTD_FAIL_ADDR_UNKNOWN)
-			instr->fail_addr -= part->offset;
-		instr->addr -= part->offset;
+			instr->fail_addr -= offset;
+		instr->addr -= offset;
 	}
 	return ret;
 }
@@ -273,10 +279,11 @@ void mtd_erase_callback(struct erase_info *instr)
 {
 	if (instr->mtd->_erase == part_erase) {
 		struct mtd_part *part = PART(instr->mtd);
+		uint64_t offset = part->master->slc_mode ? part->offset / 2 : part->offset;
 
 		if (instr->fail_addr != MTD_FAIL_ADDR_UNKNOWN)
-			instr->fail_addr -= part->offset;
-		instr->addr -= part->offset;
+			instr->fail_addr -= offset;
+		instr->addr -= offset;
 	}
 	if (instr->callback)
 		instr->callback(instr);
@@ -324,7 +331,7 @@ static void part_resume(struct mtd_info *mtd)
 static int part_block_isbad(struct mtd_info *mtd, loff_t ofs)
 {
 	struct mtd_part *part = PART(mtd);
-	ofs += part->offset;
+	ofs += part->master->slc_mode ? part->offset / 2 : part->offset;
 	return part->master->_block_isbad(part->master, ofs);
 }
 
@@ -333,7 +340,7 @@ static int part_block_markbad(struct mtd_info *mtd, loff_t ofs)
 	struct mtd_part *part = PART(mtd);
 	int res;
 
-	ofs += part->offset;
+	ofs += part->master->slc_mode ? part->offset / 2 : part->offset;
 	res = part->master->_block_markbad(part->master, ofs);
 	if (!res)
 		mtd->ecc_stats.badblocks++;
@@ -797,6 +804,33 @@ int parse_mtd_partitions(struct mtd_info *master, const char *const *types,
 	return ret;
 }
 #endif
+
+void mtd_set_slc_mode(struct mtd_info *mtd)
+{
+	struct mtd_part *part;
+
+	if (mtd->slc_mode) {
+		mtd->size /= 2;
+		mtd->erasesize /= 2;
+	} else {
+		mtd->size *= 2;
+		mtd->erasesize *= 2;
+	}
+
+	mutex_lock(&mtd_partitions_mutex);
+	list_for_each_entry(part, &mtd_partitions, list) {
+		if (part->master != mtd)
+			continue;
+
+		if (mtd->slc_mode)
+			part->mtd.size /= 2;
+		else
+			part->mtd.size *= 2;
+
+		part->mtd.erasesize = mtd->erasesize;
+	}
+	mutex_unlock(&mtd_partitions_mutex);
+}
 
 int mtd_is_partition(const struct mtd_info *mtd)
 {
