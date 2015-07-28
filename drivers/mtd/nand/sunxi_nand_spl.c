@@ -60,6 +60,7 @@ nand_init(void)
 	writel(0x7ff, &nand->timing_cfg);
 
 	/* reset CMD  */
+	writel((1 << 1), &nand->st);
 	val = SUNXI_NAND_CMD_SEND_CMD1 | SUNXI_NAND_CMD_WAIT_FLAG |
 			NAND_CMD_RESET;
 	writel(val, &nand->cmd);
@@ -69,6 +70,7 @@ nand_init(void)
 			break;
 		udelay(1000);
 	} while (1);
+	writel((1 << 1), &nand->st);
 
 	printf("Nand initialised\n");
 }
@@ -227,6 +229,7 @@ nand_read_block(struct sunxi_nand *nand, phys_addr_t src, dma_addr_t dst,
 	cmd |= SUNXI_NAND_CMD_ADDR_CYCLES(CONFIG_NAND_SUNXI_ADDR_CYCLES);
 	cmd |= (syndrome ? SUNXI_NAND_CMD_ORDER_SEQ :
 			SUNXI_NAND_CMD_ORDER_INTERLEAVE);
+	writel(SUNXI_NAND_ST_DMA_INT, &nand->st);
 	writel(cmd, &nand->cmd);
 
 	if(nand_wait_timeout(&nand->st, SUNXI_NAND_ST_DMA_INT,
@@ -234,6 +237,7 @@ nand_read_block(struct sunxi_nand *nand, phys_addr_t src, dma_addr_t dst,
 		printf("NAND timeout reading data\n");
 		return;
 	}
+	writel(SUNXI_NAND_ST_DMA_INT, &nand->st);
 
 	if(nand_wait_timeout(&dma_cfg->ctl, SUNXI_DMA_CTL_TRIGGER, 0)) {
 		printf("NAND timeout reading data\n");
