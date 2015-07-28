@@ -779,6 +779,8 @@ struct nand_chip {
 			int feature_addr, uint8_t *subfeature_para);
 	int (*setup_read_retry)(struct mtd_info *mtd, int retry_mode);
 	void (*manuf_cleanup)(struct mtd_info *mtd);
+	void (*set_slc_mode)(struct mtd_info *mtd);
+	void (*fix_page)(struct mtd_info *mtd, int *page);
 
 	void *manuf_priv;
 
@@ -1197,5 +1199,7 @@ void nand_write_buf16(struct mtd_info *mtd, const uint8_t *buf, int len);
 void nand_read_buf(struct mtd_info *mtd, uint8_t *buf, int len);
 void nand_read_buf16(struct mtd_info *mtd, uint8_t *buf, int len);
 uint8_t nand_read_byte(struct mtd_info *mtd);
+void nand_set_slc_mode(struct mtd_info *mtd, bool enable);
+bool nand_get_slc_mode(struct mtd_info *mtd);
 #endif
 #endif /* __LINUX_MTD_NAND_H */

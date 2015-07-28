@@ -743,6 +743,24 @@ static int do_nand(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	}
 #endif
 
+	if (strncmp(cmd, "slc-mode", 8) == 0) {
+		bool slc_mode = false;
+
+		if (argc < 3) {
+			printf("SLC mode %s\n",
+			       nand_get_slc_mode(&nand_info[dev]) ?
+			       "on" : "off");
+			return 0;
+		}
+
+		if (strncmp(argv[2], "on", 2) == 0)
+			slc_mode = true;
+
+		nand_set_slc_mode(&nand_info[dev], slc_mode);
+
+		return 0;
+	}
+
 usage:
 	return CMD_RET_USAGE;
 }
@@ -778,6 +796,7 @@ static char nand_help_text[] =
 	"nand scrub [-y] off size | scrub.part partition | scrub.chip\n"
 	"    really clean NAND erasing bad blocks (UNSAFE)\n"
 	"nand markbad off [...] - mark bad block(s) at offset (UNSAFE)\n"
+	"nand slc-mode [on/off] - set or print the SLC mode\n"
 	"nand biterr off - make a bit error at offset (UNSAFE)"
 #ifdef CONFIG_CMD_NAND_LOCK_UNLOCK
 	"\n"

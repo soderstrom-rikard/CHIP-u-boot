@@ -272,6 +272,7 @@ struct mtd_info {
 	struct device dev;
 #endif
 	int usecount;
+	bool slc_mode;
 };
 
 int mtd_erase(struct mtd_info *mtd, struct erase_info *instr);
@@ -482,6 +483,7 @@ int add_mtd_device(struct mtd_info *mtd);
 int del_mtd_device(struct mtd_info *mtd);
 int add_mtd_partitions(struct mtd_info *, const struct mtd_partition *, int);
 int del_mtd_partitions(struct mtd_info *);
+void mtd_set_slc_mode(struct mtd_info *mtd);
 
 int mtd_arg_off(const char *arg, int *idx, loff_t *off, loff_t *size,
 		loff_t *maxsize, int devtype, uint64_t chipsize);
