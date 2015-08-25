@@ -23,6 +23,9 @@
 #ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
 #include <fb_mmc.h>
 #endif
+#ifdef CONFIG_FASTBOOT_FLASH_NAND_DEV
+#include <fb_nand.h>
+#endif
 
 #define FASTBOOT_VERSION		"0.4"
 
@@ -547,6 +550,10 @@ static void cb_flash(struct usb_ep *ep, struct usb_request *req)
 	fb_mmc_flash_write(cmd, (void *)CONFIG_USB_FASTBOOT_BUF_ADDR,
 			   download_bytes, response);
 #endif
+#ifdef CONFIG_FASTBOOT_FLASH_NAND_DEV
+	fb_nand_flash_write(cmd, (void *)CONFIG_USB_FASTBOOT_BUF_ADDR,
+			    download_bytes, response);
+#endif
 	fastboot_tx_write_str(response);
 }
 #endif
@@ -554,7 +561,7 @@ static void cb_flash(struct usb_ep *ep, struct usb_request *req)
 static void cb_oem(struct usb_ep *ep, struct usb_request *req)
 {
 	char *cmd = req->buf;
-#ifdef CONFIG_FASTBOOT_FLASH
+#ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
 	if (strncmp("format", cmd + 4, 6) == 0) {
 		char cmdbuf[32];
                 sprintf(cmdbuf, "gpt write mmc %x $partitions",
@@ -590,6 +597,9 @@ static void cb_erase(struct usb_ep *ep, struct usb_request *req)
 
 #ifdef CONFIG_FASTBOOT_FLASH_MMC_DEV
 	fb_mmc_erase(cmd, response);
+#endif
+#ifdef CONFIG_FASTBOOT_FLASH_NAND_DEV
+	fb_nand_erase(cmd, response);
 #endif
 	fastboot_tx_write_str(response);
 }
