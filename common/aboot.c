@@ -269,8 +269,7 @@ void write_sparse_image(block_dev_desc_t *dev_desc,
 	}
 
 	/* verify sparse_header->blk_sz is an exact multiple of info->blksz */
-	if (sparse_header->blk_sz !=
-	    (sparse_header->blk_sz & ~(info->blksz - 1))) {
+	if (sparse_header->blk_sz % info->blksz) {
 		printf("%s: Sparse image block size issue [%u]\n",
 		       __func__, sparse_header->blk_sz);
 		fastboot_fail("sparse image block size issue");
