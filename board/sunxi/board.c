@@ -318,6 +318,41 @@ int board_mmc_init(bd_t *bis)
 #endif
 
 #ifdef CONFIG_NAND
+
+#ifdef CONFIG_FASTBOOT_FLASH_NAND_DEV
+
+int board_fastboot_erase_partition_setup(char *name)
+{
+	printf("Switching to NAND MLC mode\n");
+	run_command("nand slc-mode off", 0);
+
+	return 0;
+}
+
+int board_fastboot_write_partition_setup(char *name)
+{
+	/* Setup randomizer / ECC mode */
+	if (!strcmp(name, "spl") || !strcmp(name, "spl-backup")) {
+		printf("Switching to NAND hw syndrome ECC and randomizer mode\n");
+		run_command("sunxi_nand config spl", 0);
+	} else {
+		printf("Switching to NAND default ECC and randomizer mode\n");
+		run_command("sunxi_nand config default", 0);
+	}
+
+	/* UBI needs to be accessed in SLC mode */
+	if (!strcmp(name, "UBI")) {
+		printf("Switching to NAND SLC mode\n");
+		run_command("nand slc-mode on", 0);
+	} else {
+		printf("Switching to NAND MLC mode\n");
+		run_command("nand slc-mode off", 0);
+	}
+
+	return 0;
+}
+#endif
+
 void board_nand_init(void)
 {
 	unsigned int pin;
