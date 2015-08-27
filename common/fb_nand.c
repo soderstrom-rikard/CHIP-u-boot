@@ -34,6 +34,11 @@ void fastboot_okay(const char *s)
 	strncat(response_str, s, RESPONSE_LEN - 4 - 1);
 }
 
+struct fb_nand_sparse {
+	nand_info_t		*nand;
+	struct part_info	*part;
+};
+
 static int fb_nand_lookup(const char *partname, char *response,
 			  nand_info_t **nand,
 			  struct part_info **part)

@@ -247,13 +247,11 @@ static void sparse_put_data_buffer(sparse_buffer_t *buffer)
 	free(buffer);
 }
 
-void write_sparse_image(block_dev_desc_t *dev_desc,
-		disk_partition_t *info, const char *part_name,
-		void *data, unsigned sz)
+void store_sparse_image(sparse_storage_t *storage,
+			void *storage_priv, void *data)
 {
-	lbaint_t blk;
-	lbaint_t blkcnt;
-	lbaint_t blks;
+	uint32_t blk;
+	uint32_t blkcnt;
 	uint32_t bytes_written = 0;
 	unsigned int chunk;
 	sparse_header_t *sparse_header;
@@ -262,14 +260,25 @@ void write_sparse_image(block_dev_desc_t *dev_desc,
 	uint32_t total_blocks = 0;
 	int i;
 
+	debug("=== Storage ===\n");
+	debug("name: %s\n", storage->name);
+	debug("block_size: 0x%x\n", storage->block_sz);
+	debug("start: 0x%x\n", storage->start);
+	debug("size: 0x%x\n", storage->size);
+	debug("write: 0x%p\n", storage->write);
+	debug("priv: 0x%p\n", storage_priv);
+
 	sparse_header = sparse_parse_header(&data);
 	if (!sparse_header) {
 		fastboot_fail("sparse header issue\n");
 		return;
 	}
 
-	/* verify sparse_header->blk_sz is an exact multiple of info->blksz */
-	if (sparse_header->blk_sz % info->blksz) {
+	/*
+	 * Verify that the sparse block size is a multiple of our
+	 * storage backend block size
+	 */
+	if (sparse_header->blk_sz % storage->block_sz) {
 		printf("%s: Sparse image block size issue [%u]\n",
 		       __func__, sparse_header->blk_sz);
 		fastboot_fail("sparse image block size issue");
@@ -279,7 +288,7 @@ void write_sparse_image(block_dev_desc_t *dev_desc,
 	puts("Flashing Sparse Image\n");
 
 	/* Start processing chunks */
-	blk = info->start;
+	blk = storage->start;
 	for (chunk = 0; chunk < sparse_header->total_chunks; chunk++) {
 		chunk_header = sparse_parse_chunk(sparse_header, &data);
 		if (!chunk_header) {
@@ -289,13 +298,13 @@ void write_sparse_image(block_dev_desc_t *dev_desc,
 
 		/* Retrieve the buffer we're going to write */
 		buffer = sparse_get_data_buffer(sparse_header, chunk_header,
-						info->blksz, &data);
+						storage->block_sz, &data);
 		if (!buffer)
 			continue;
 
-		blkcnt = (buffer->length / info->blksz) * buffer->repeat;
+		blkcnt = (buffer->length / storage->block_sz) * buffer->repeat;
 
-		if (blk + blkcnt > info->start + info->size) {
+		if (blk + blkcnt > storage->start + storage->size) {
 			printf("%s: Request would exceed partition size!\n",
 			       __func__);
 			fastboot_fail("Request would exceed partition size!");
@@ -308,10 +317,12 @@ void write_sparse_image(block_dev_desc_t *dev_desc,
 
 			buffer_blk_cnt = buffer->length / storage->block_sz;
 
-			buffer_blks = dev_desc->block_write(dev_desc->dev, blk,
-							    buffer_blk_cnt, buffer->data);
+			buffer_blks = storage->write(storage,
+						     storage_priv,
+						     blk, buffer_blk_cnt,
+						     buffer->data);
 			if (buffer_blks != buffer_blk_cnt) {
-				printf("%s: Write %d failed " LBAFU "\n",
+				printf("%s: Write %d failed %d\n",
 				       __func__, i, buffer_blks);
 				fastboot_fail("flash write failure");
 				return;
@@ -327,7 +338,8 @@ void write_sparse_image(block_dev_desc_t *dev_desc,
 
 	debug("Wrote %d blocks, expected to write %d blocks\n",
 	      total_blocks, sparse_header->total_blks);
-	printf("........ wrote %u bytes to '%s'\n", bytes_written, part_name);
+	printf("........ wrote %u bytes to '%s'\n", bytes_written,
+	       storage->name);
 
 	if (total_blocks != sparse_header->total_blks)
 		fastboot_fail("sparse image write failure");
