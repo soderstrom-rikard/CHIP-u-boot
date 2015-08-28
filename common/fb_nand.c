@@ -134,8 +134,18 @@ static unsigned int fb_nand_sparse_write(struct sparse_storage *storage,
 {
 	struct fb_nand_sparse *sparse = priv;
 
-	_fb_nand_write(sparse->nand, sparse->part, data,
-		       offset * storage->block_sz,
+	if (sparse->nand->slc_mode) {
+		unsigned int erase, page;
+
+		erase = (offset * storage->block_sz) / sparse->nand->erasesize;
+		erase = erase * 2;
+		page = (offset * storage->block_sz) % sparse->nand->erasesize;
+		offset = erase * sparse->nand->erasesize + page;
+	} else {
+		offset = offset * storage->block_sz;
+	}
+
+	_fb_nand_write(sparse->nand, sparse->part, data, offset,
 		       size * storage->block_sz);
 
 	return size;
