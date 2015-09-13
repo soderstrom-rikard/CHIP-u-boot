@@ -341,8 +341,12 @@ extern int soft_i2c_gpio_scl;
 
 #define CONFIG_CMD_FASTBOOT
 #define CONFIG_USB_FASTBOOT_BUF_ADDR   CONFIG_SYS_LOAD_ADDR
-#define CONFIG_USB_FASTBOOT_BUF_SIZE   0x2000000
+#define CONFIG_USB_FASTBOOT_BUF_SIZE   (256 << 20)
 #define CONFIG_ANDROID_BOOT_IMAGE
+
+#define CONFIG_FASTBOOT_FLASH
+#define CONFIG_FASTBOOT_FLASH_NAND_DEV
+#define CONFIG_FASTBOOT_FLASH_NAND_TRIMFFS
 
 #define CONFIG_USBDOWNLOAD_GADGET
 #define CONFIG_G_DNL_VENDOR_NUM		0x18d1
@@ -497,7 +501,7 @@ extern int soft_i2c_gpio_scl;
 	"console=ttyS0,115200\0" \
 	"usbnet_devaddr=de:ad:be:af:00:01\0" \
 	"mtdids=nand0=sunxi-nand.0\0" \
-	"mtdparts=mtdparts=sunxi-nand.0:-@0x1000000(UBI)\0" \
+	"mtdparts=mtdparts=sunxi-nand.0:4m(spl),4m(spl-backup),4m(uboot),4m(env),-(UBI)\0" \
 	BOOTENV
 
 #else /* ifndef CONFIG_SPL_BUILD */

@@ -64,6 +64,9 @@ int nand_erase_opts(nand_info_t *meminfo, const nand_erase_options_t *opts)
 		return -1;
 	}
 
+	if (meminfo->slc_mode)
+		return -1;
+
 	memset(&erase, 0, sizeof(erase));
 	memset(&oob_opts, 0, sizeof(oob_opts));
 
@@ -72,8 +75,6 @@ int nand_erase_opts(nand_info_t *meminfo, const nand_erase_options_t *opts)
 	erase.addr = opts->offset;
 	erase_length = lldiv(opts->length + meminfo->erasesize - 1,
 			     meminfo->erasesize);
-	if (meminfo->slc_mode)
-		erase_length /= 2;
 
 	cleanmarker.magic = cpu_to_je16(JFFS2_MAGIC_BITMASK);
 	cleanmarker.nodetype = cpu_to_je16(JFFS2_NODETYPE_CLEANMARKER);
