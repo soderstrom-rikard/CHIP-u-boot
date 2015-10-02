@@ -16,7 +16,6 @@
 #define	__ASSEMBLY__			/* Dirty trick to get only #defines	*/
 #endif
 #define	__ASM_STUB_PROCESSOR_H__	/* don't include asm/processor.		*/
-#include <generated/autoconf.h>
 #include <config.h>
 #undef	__ASSEMBLY__
 
