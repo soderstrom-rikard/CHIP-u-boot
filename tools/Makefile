@@ -168,7 +168,7 @@ HOSTCFLAGS_sha256.o := -pedantic
 #HOSTCFLAGS_mpc86x_clk.o := -pedantic
 
 quiet_cmd_wrap = WRAP    $@
-cmd_wrap = echo "\#include <generated/autoconf.h>\n\#include <../$(patsubst $(obj)/%,%,$@)>" >$@
+cmd_wrap = echo "\#include <../$(patsubst $(obj)/%,%,$@)>" >$@
 
 $(obj)/lib/%.c $(obj)/common/%.c:
 	$(call cmd,wrap)
@@ -206,6 +206,7 @@ endif # !LOGO_BMP
 # Define _GNU_SOURCE to obtain the getline prototype from stdio.h
 #
 HOST_EXTRACFLAGS += -include $(srctree)/include/libfdt_env.h \
+		-include $(srctree)/include/generated/autoconf.h \
 		$(patsubst -I%,-idirafter%, $(filter -I%, $(UBOOTINCLUDE))) \
 		-I$(srctree)/lib/libfdt \
 		-I$(srctree)/tools \
