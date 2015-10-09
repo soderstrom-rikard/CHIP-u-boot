@@ -257,11 +257,8 @@
 				0x7c57 0x0fbe 0x46ce 0x4939 0x6b17 0x37bb 0x3e91 0x76db>;
 		configs {
 			spl {
-				nand-ecc-mode = "hw_syndrome";
-				nand-rnd-mode = "hw";
-				nand-ecc-step-size = <1024>;
-				nand-ecc-strength = <40>;
-				nand-randomizer-seeds = /bits/ 16 <0x4a80>;
+				nand-ecc-mode = "none";
+				nand-rnd-mode = "none";
 			};
 		};
 	};
