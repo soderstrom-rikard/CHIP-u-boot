@@ -322,8 +322,9 @@ static int raw_access(nand_info_t *nand, ulong addr, loff_t off, ulong count,
 			ret = mtd_read_oob(nand, off, &ops);
 		} else {
 			ret = mtd_write_oob(nand, off, &ops);
-			if (!ret)
-				ret = nand_verify_page_oob(nand, &ops, off);
+      /*
+      ret = nand_verify_page_oob(nand, &ops, off);
+      */
 		}
 
 		if (ret) {
